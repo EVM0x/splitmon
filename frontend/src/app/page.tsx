@@ -12,9 +12,7 @@ import {
 } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { parseEther, formatEther } from "viem";
-import { SPLITMON_ABI } from "@/lib/contract";
-
-const CONTRACT_ADDRESS = "0x9f8b012407bF1D84055828dA60aD0B6F7D6891e5" as `0x${string}`;
+import { SPLITMON_ABI, CONTRACT_ADDRESS } from "@/lib/contract";
 
 export default function Home() {
   const { address, isConnected } = useAccount();
@@ -47,13 +45,13 @@ export default function Home() {
     functionName: "getSplit",
     args: splitId > 0 ? [BigInt(splitId)] : undefined,
     query: { enabled: splitId > 0 },
-  });
+  }) as { data: readonly unknown[] | undefined; refetch: () => void };
 
   const { data: splitCount } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: SPLITMON_ABI,
     functionName: "splitCount",
-  });
+  }) as { data: bigint | undefined };
 
   const handleConnect = async () => {
     try {
@@ -125,6 +123,22 @@ export default function Home() {
         address: CONTRACT_ADDRESS,
         abi: SPLITMON_ABI,
         functionName: "refund",
+        args: [BigInt(id)],
+      });
+      setTxHash(hash);
+    } catch (e: unknown) {
+      const err = e as Error;
+      setError(err?.message?.slice(0, 200) || "Transaction failed");
+    }
+  };
+
+  const handleRelease = async (id: number) => {
+    setError("");
+    try {
+      const hash = await writeContractAsync({
+        address: CONTRACT_ADDRESS,
+        abi: SPLITMON_ABI,
+        functionName: "releaseFunds",
         args: [BigInt(id)],
       });
       setTxHash(hash);
@@ -251,6 +265,7 @@ export default function Home() {
             address={address}
             handlePay={handlePay}
             handleRefund={handleRefund}
+            handleRelease={handleRelease}
             isConfirming={isConfirming}
           />
         )}
@@ -446,6 +461,7 @@ function DetailView({
   address,
   handlePay,
   handleRefund,
+  handleRelease,
   isConfirming,
 }: {
   splitId: number;
@@ -453,6 +469,7 @@ function DetailView({
   address: `0x${string}` | undefined;
   handlePay: (id: number, perPerson: bigint) => void;
   handleRefund: (id: number) => void;
+  handleRelease: (id: number) => void;
   isConfirming: boolean;
 }) {
   if (!splitData) return null;
@@ -542,9 +559,19 @@ function DetailView({
       </div>
 
       {/* Actions */}
-      {!settled && !refunded && userIdx >= 0 && (
+      {!settled && !refunded && (
         <div className="space-y-2">
-          {!userHasPaid && !isPastDeadline && (
+          {/* Release funds — creator only, when at least 2 paid */}
+          {userIsCreator && paidCount >= 2 && (
+            <button
+              onClick={() => handleRelease(splitId)}
+              disabled={isConfirming}
+              className="w-full bg-violet-600 hover:bg-violet-500 disabled:bg-zinc-700 text-white py-3 rounded-xl font-medium transition-colors"
+            >
+              {isConfirming ? "Releasing..." : `Release ${formatEther((perPerson as bigint) * BigInt(paidCount))} MON`}
+            </button>
+          )}
+          {userIdx >= 0 && !userHasPaid && !isPastDeadline && (
             <button
               onClick={() => handlePay(splitId, perPerson as bigint)}
               disabled={isConfirming}
@@ -553,7 +580,7 @@ function DetailView({
               {isConfirming ? "Paying..." : `Pay ${formatEther(perPerson as bigint)} MON`}
             </button>
           )}
-          {userHasPaid && isPastDeadline && (
+          {userIdx >= 0 && userHasPaid && isPastDeadline && (
             <button
               onClick={() => handleRefund(splitId)}
               disabled={isConfirming}
@@ -562,7 +589,7 @@ function DetailView({
               {isConfirming ? "Refunding..." : `Refund ${formatEther(perPerson as bigint)} MON`}
             </button>
           )}
-          {userHasPaid && !isPastDeadline && (
+          {userIdx >= 0 && userHasPaid && !isPastDeadline && (
             <p className="text-xs text-center text-zinc-600">
               You&apos;ve paid. Waiting for others or deadline to pass.
             </p>

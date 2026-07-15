@@ -39,6 +39,7 @@ contract SplitMon {
     event SplitSettled(uint256 indexed splitId, address indexed creator, uint256 amount);
     event SplitRefunded(uint256 indexed splitId);
     event ParticipantRefunded(uint256 indexed splitId, address indexed participant, uint256 amount);
+    event PartialRelease(uint256 indexed splitId, address indexed creator, uint256 amount);
 
     /**
      * @notice Create a new split
@@ -152,6 +153,27 @@ contract SplitMon {
             s.refunded = true;
             emit SplitRefunded(_splitId);
         }
+    }
+
+    /**
+     * @notice Release partial funds to creator when at least 2 have paid (but not all)
+     * @param _splitId The split ID to release funds from
+     */
+    function releaseFunds(uint256 _splitId) external {
+        Split storage s = splits[_splitId];
+        require(s.creator != address(0), "Split does not exist");
+        require(msg.sender == s.creator, "Only creator can release");
+        require(!s.settled, "Already settled");
+        require(!s.refunded, "Already refunded");
+        require(s.paidCount >= 2, "Need at least 2 payers");
+        require(s.paidCount < s.participantCount, "All paid, use settle");
+
+        uint256 amount = uint256(s.paidCount) * s.perPerson;
+
+        emit PartialRelease(_splitId, s.creator, amount);
+
+        (bool sent, ) = s.creator.call{value: amount}("");
+        require(sent, "Transfer to creator failed");
     }
 
     // ========== View Functions ==========

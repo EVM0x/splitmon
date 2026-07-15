@@ -1,96 +1,23 @@
-export const SPLITMON_ABI = [
-  {
-    "inputs": [
-      { "internalType": "address[]", "name": "_participants", "type": "address[]" },
-      { "internalType": "uint256", "name": "_deadline", "type": "uint256" },
-      { "internalType": "string", "name": "_title", "type": "string" }
-    ],
-    "name": "createSplit",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "_splitId", "type": "uint256" }
-    ],
-    "name": "payShare",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "_splitId", "type": "uint256" }
-    ],
-    "name": "refund",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "_splitId", "type": "uint256" }
-    ],
-    "name": "getSplit",
-    "outputs": [
-      { "internalType": "address", "name": "creator", "type": "address" },
-      { "internalType": "uint256", "name": "totalAmount", "type": "uint256" },
-      { "internalType": "uint256", "name": "perPerson", "type": "uint256" },
-      { "internalType": "uint256", "name": "deadline", "type": "uint256" },
-      { "internalType": "uint8", "name": "participantCount", "type": "uint8" },
-      { "internalType": "uint8", "name": "paidCount", "type": "uint8" },
-      { "internalType": "bool", "name": "settled", "type": "bool" },
-      { "internalType": "bool", "name": "refunded", "type": "bool" },
-      { "internalType": "string", "name": "title", "type": "string" },
-      { "internalType": "address[]", "name": "participants", "type": "address[]" },
-      { "internalType": "bool[]", "name": "paidStatus", "type": "bool[]" }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "splitCount",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "internalType": "uint256", "name": "splitId", "type": "uint256" },
-      { "indexed": true, "internalType": "address", "name": "creator", "type": "address" },
-      { "indexed": false, "internalType": "uint256", "name": "totalAmount", "type": "uint256" },
-      { "indexed": false, "internalType": "uint8", "name": "participantCount", "type": "uint8" },
-      { "indexed": false, "internalType": "uint256", "name": "perPerson", "type": "uint256" },
-      { "indexed": false, "internalType": "uint256", "name": "deadline", "type": "uint256" },
-      { "indexed": false, "internalType": "string", "name": "title", "type": "string" }
-    ],
-    "name": "SplitCreated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "internalType": "uint256", "name": "splitId", "type": "uint256" },
-      { "indexed": true, "internalType": "address", "name": "payer", "type": "address" },
-      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
-    ],
-    "name": "PaymentMade",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": true, "internalType": "uint256", "name": "splitId", "type": "uint256" },
-      { "indexed": true, "internalType": "address", "name": "creator", "type": "address" },
-      { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
-    ],
-    "name": "SplitSettled",
-    "type": "event"
-  }
-] as const;
+import { parseAbi } from "viem";
+
+export const SPLITMON_ABI = parseAbi([
+  "function createSplit(address[] participants, uint256 deadline, string title) payable returns (uint256)",
+  "function getSplit(uint256 splitId) view returns (address creator, uint256 totalAmount, uint256 perPerson, uint256 deadline, uint8 participantCount, uint8 paidCount, bool settled, bool refunded, string title, address[] participants, bool[] paidStatus)",
+  "function hasPaid(uint256 splitId, address participant) view returns (bool)",
+  "function isParticipant(uint256 splitId, address participant) view returns (bool)",
+  "function payShare(uint256 splitId) payable",
+  "function refund(uint256 splitId)",
+  "function releaseFunds(uint256 splitId)",
+  "function splitCount() view returns (uint256)",
+  "event PartialRelease(uint256 indexed splitId, address indexed creator, uint256 amount)",
+  "event ParticipantRefunded(uint256 indexed splitId, address indexed participant, uint256 amount)",
+  "event PaymentMade(uint256 indexed splitId, address indexed payer, uint256 amount)",
+  "event SplitCreated(uint256 indexed splitId, address indexed creator, uint256 totalAmount, uint8 participantCount, uint256 perPerson, uint256 deadline, string title)",
+  "event SplitRefunded(uint256 indexed splitId)",
+  "event SplitSettled(uint256 indexed splitId, address indexed creator, uint256 amount)",
+]);
+
+export const CONTRACT_ADDRESS = "0x4D6e0C8443943a25862B5bB229Aa9dbB8197d92c" as const;
 
 export const MONAD_TESTNET = {
   id: 10143,

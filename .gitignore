@@ -6,3 +6,5 @@ frontend/.next/
 frontend/out/
 .env
 .env.local
+__pycache__/
+.pytest_cache/

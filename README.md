@@ -52,6 +52,18 @@ If at least 2 people have paid but not everyone, the creator can **release parti
 - `SplitRefunded` — Everyone refunded
 - `ParticipantRefunded` — Individual refund claimed
 
+### Tests
+
+The contract has no Hardhat `node_modules` in this checkout, so `tests/` compiles
+`contracts/SplitMon.sol` with the standalone `solc` binary and executes it on
+py-evm: real bytecode, real value transfers, nothing mocked.
+
+```bash
+pip install web3 'eth-tester[py-evm]'
+solc --version      # 0.8.x must be on PATH
+pytest tests/ -v
+```
+
 ## Tech Stack
 
 - **Smart Contract:** Solidity 0.8.20 + Foundry

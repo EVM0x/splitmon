@@ -16,6 +16,9 @@ contract SplitMon {
         uint8 paidCount;
         bool settled;
         bool refunded;
+        // Reimbursements already handed to the creator by releaseFunds. Without
+        // it releaseFunds pays the same money again on every call.
+        uint256 released;
         mapping(address => bool) hasPaid;
         mapping(address => bool) isParticipant;
         address[] participants;
@@ -120,7 +123,13 @@ contract SplitMon {
         // Auto-settle if everyone paid
         if (s.paidCount == s.participantCount) {
             s.settled = true;
-            uint256 payout = s.totalAmount;
+            // The creator funded the whole split up front, so everything the
+            // contract holds for it belongs to him: his own stake plus every
+            // reimbursement, minus whatever releaseFunds already paid out.
+            // Paying only totalAmount left all the reimbursements behind.
+            uint256 payout = s.totalAmount
+                + uint256(s.paidCount - 1) * s.perPerson
+                - s.released;
             (bool sent, ) = s.creator.call{value: payout}("");
             require(sent, "Transfer to creator failed");
             emit SplitSettled(_splitId, s.creator, payout);
@@ -168,7 +177,12 @@ contract SplitMon {
         require(s.paidCount >= 2, "Need at least 2 payers");
         require(s.paidCount < s.participantCount, "All paid, use settle");
 
-        uint256 amount = uint256(s.paidCount) * s.perPerson;
+        // Only the part that has not been released yet: the creator's own stake
+        // plus the reimbursements collected so far, minus what he already took.
+        uint256 owed = uint256(s.paidCount) * s.perPerson;
+        require(owed > s.released, "Nothing to release");
+        uint256 amount = owed - s.released;
+        s.released = owed;
 
         emit PartialRelease(_splitId, s.creator, amount);
 
